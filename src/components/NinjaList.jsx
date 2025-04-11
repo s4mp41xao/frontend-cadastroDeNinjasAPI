@@ -28,7 +28,9 @@ const NinjaList = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">Lista de Ninjas</h1>
+      {/* <h1 className="text-3xl font-bold text-center mb-6">
+        Lista de cadastros
+      </h1> */}
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm text-center border-collapse">
           <thead className="bg-gray-200 uppercase text-xs text-gray-600">
