@@ -11,12 +11,6 @@ const Sidebar = () => {
 
   return (
     <div className="p-4">
-      {/* <div onClick={() => setNav(!nav)} className="cursor-pointer">
-        <AiOutlineMenu size={30} />
-      </div> */}
-
-      {/* <h1 className="text-2xl font-bold my-4">Menu</h1> */}
-
       <ul className="space-y-4">
         <li className="text-xl flex items-center">
           <FaHome size={25} className="mr-3" />
