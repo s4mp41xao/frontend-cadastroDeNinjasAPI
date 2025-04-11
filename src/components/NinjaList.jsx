@@ -1,11 +1,45 @@
 import React, { useEffect, useState } from 'react'
-import { listarNinjas } from '../services/ninjaService'
+import { criarNinja, listarNinjas } from '../services/ninjaService'
 
 const NinjaList = () => {
+  const [nome, setNome] = useState('')
+  const [idade, setIdade] = useState('')
+  const [rank, setRank] = useState('')
   const [ninjas, setNinjas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showModal, setShowModal] = useState(false)
+
+  useEffect(() => {
+    carregarNinjas()
+  }, [])
+
+  const carregarNinjas = async () => {
+    try {
+      const response = await listarNinjas()
+      setNinjas(response.data)
+      setLoading(false)
+    } catch (err) {
+      setError(err)
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async e => {
+    e.preventDefault()
+    try {
+      const novoNinja = { nome, idade: parseInt(idade), rank }
+      await criarNinja(novoNinja)
+      await carregarNinjas()
+      setShowModal(false)
+      setNome('')
+      setIdade('')
+      setRank('')
+    } catch (err) {
+      console.error('Erro ao criar ninja:', err)
+      alert('Erro ao cadastrar ninja.')
+    }
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -53,13 +87,16 @@ const NinjaList = () => {
             onClick={e => e.stopPropagation()} // impede de fechar ao clicar dentro
           >
             <h3 className="text-2xl font-bold mb-4">Cadastrar Ninja</h3>
-            <form className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block mb-1 font-medium">Nome</label>
                 <input
                   type="text"
                   className="w-full border px-4 py-2 rounded"
                   placeholder="Digite o nome"
+                  value={nome}
+                  onChange={e => setNome(e.target.value)}
+                  required
                 />
               </div>
               <div>
@@ -68,6 +105,9 @@ const NinjaList = () => {
                   type="number"
                   className="w-full border px-4 py-2 rounded"
                   placeholder="Digite a idade"
+                  value={idade}
+                  onChange={e => setIdade(e.target.value)}
+                  required
                 />
               </div>
               <div>
@@ -76,6 +116,9 @@ const NinjaList = () => {
                   type="text"
                   className="w-full border px-4 py-2 rounded"
                   placeholder="Digite o rank"
+                  value={rank}
+                  onChange={e => setRank(e.target.value)}
+                  required
                 />
               </div>
               <div className="flex justify-end space-x-2 pt-4">
@@ -88,7 +131,7 @@ const NinjaList = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-black text-white"
+                  className="px-4 py-2 rounded bg-blue-600 text-white"
                 >
                   Salvar
                 </button>

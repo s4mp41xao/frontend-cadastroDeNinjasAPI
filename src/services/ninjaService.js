@@ -9,9 +9,5 @@ export const listarNinjas = () => {
   return axios.get(`${API_URL}/listar`)
 }
 
-// export const criarNinja = (novoNinja) => axios.post(`${API_URL}`, novoNinja)
-
-// Aqui você pode adicionar outras funções que façam chamadas à API, por exemplo:
-// export const criarNinja = (ninja) => {
-//   return api.post('/ninjas/criar', ninja);
+export const criarNinja = ninja => axios.post(`${API_URL}/criar`, ninja)
 // };
