@@ -35,7 +35,7 @@ const NinjaList = () => {
         </h2>
 
         <button
-          className="rounded-full font-bold bg-blue-600 text-white px-6 py-2"
+          className="rounded-full font-bold bg-black text-white px-6 py-2"
           onClick={() => setShowModal(true)}
         >
           Cadastrar Despesa
@@ -88,7 +88,7 @@ const NinjaList = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white"
+                  className="px-4 py-2 rounded bg-black text-white"
                 >
                   Salvar
                 </button>
