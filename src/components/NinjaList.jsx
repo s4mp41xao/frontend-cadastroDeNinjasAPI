@@ -62,8 +62,8 @@ const NinjaList = () => {
     )
 
   return (
-    <div className="p-6 relative">
-      <div className="flex justify-between items-center py-10 px-4">
+    <div className="px-6 relative">
+      <div className="flex justify-between items-center pb-10 pt-8 px-4">
         <h2 className="text-3xl font-bold text-left">
           Histórico de movimentações
         </h2>
@@ -131,7 +131,7 @@ const NinjaList = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-blue-600 text-white"
+                  className="px-4 py-2 rounded bg-black text-white"
                 >
                   Salvar
                 </button>
