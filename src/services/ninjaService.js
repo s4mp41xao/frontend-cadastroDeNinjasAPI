@@ -10,4 +10,8 @@ export const listarNinjas = () => {
 }
 
 export const criarNinja = ninja => axios.post(`${API_URL}/criar`, ninja)
+
+export const deletarNinjaPorId = (id) => {
+  return axios.delete(`${API_URL}/delete/${id}`);
+}
 // };

@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { criarNinja, listarNinjas } from '../services/ninjaService'
+import {
+  criarNinja,
+  listarNinjas,
+  deletarNinjaPorId
+} from '../services/ninjaService'
 
 const NinjaList = () => {
   const [nome, setNome] = useState('')
@@ -9,10 +13,35 @@ const NinjaList = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showModal, setShowModal] = useState(false)
+  const [selectedIds, setSelectedIds] = useState([])
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteMode, setDeleteMode] = useState(false)
 
   useEffect(() => {
     carregarNinjas()
   }, [])
+
+  useEffect(() => {
+    const handleClickOutside = event => {
+      // Verifica se o clique foi fora da tabela, dos botões ou do cabeçalho
+      if (
+        deleteMode &&
+        !event.target.closest('table') && // Clique fora da tabela
+        !event.target.closest('.header-container') && // Clique no cabeçalho
+        !event.target.closest('.button-container') // Clique nos botões
+      ) {
+        setSelectedIds([]) // Limpa os itens selecionados
+      }
+    }
+
+    // Adiciona o evento de clique no documento
+    document.addEventListener('click', handleClickOutside)
+
+    // Remove o evento ao desmontar o componente
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [deleteMode])
 
   const carregarNinjas = async () => {
     try {
@@ -41,19 +70,24 @@ const NinjaList = () => {
     }
   }
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await listarNinjas()
-        setNinjas(response.data)
-        setLoading(false)
-      } catch (err) {
-        setError(err)
-        setLoading(false)
+  const handleRowClick = id => {
+    if (!deleteMode) return
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleDeletar = async () => {
+    try {
+      for (const id of selectedIds) {
+        await deletarNinjaPorId(id)
       }
+      setSelectedIds([])
+      carregarNinjas()
+    } catch (err) {
+      console.error('Erro ao deletar ninja:', err)
     }
-    fetchData()
-  }, [])
+  }
 
   if (loading) return <p className="text-center mt-4">Carregando...</p>
   if (error)
@@ -63,28 +97,75 @@ const NinjaList = () => {
 
   return (
     <div className="px-6 relative">
-      <div className="flex justify-between items-center pb-10 pt-8 px-4">
+      <div
+        className="flex justify-between items-center pb-10 pt-8 px-4 header-container"
+        onClick={e => e.stopPropagation()} // Impede que o clique no cabeçalho desmarque os itens
+      >
         <h2 className="text-3xl font-bold text-left">
           Histórico de movimentações
         </h2>
 
-        <button
-          className="rounded-full font-bold bg-black text-white px-6 py-2"
-          onClick={() => setShowModal(true)}
-        >
-          Cadastrar Despesa
-        </button>
+        <div className="flex gap-4 button-container">
+          <button
+            className="rounded-full font-bold bg-black text-white px-6 py-2"
+            onClick={() => setShowModal(true)}
+          >
+            Cadastrar Despesa
+          </button>
+
+          <button
+            className="rounded-full font-bold bg-red-600 text-white px-6 py-2"
+            onClick={() => setDeleteMode(true)}
+          >
+            {deleteMode
+              ? `Despesas Selecionadas: (${selectedIds.length})`
+              : 'Remover Despesa'}
+          </button>
+        </div>
       </div>
 
-      {/* Modal */}
+      <div
+        className="overflow-x-auto"
+        onClick={e => e.stopPropagation()} // Impede que o clique na tabela desmarque os itens
+      >
+        <table className="min-w-full text-sm text-center border-collapse">
+          <thead className="bg-gray-200 uppercase text-xs text-gray-600">
+            <tr>
+              <th className="px-6 py-3 border">ID</th>
+              <th className="px-6 py-3 border">Nome</th>
+              <th className="px-6 py-3 border">Idade</th>
+              <th className="px-6 py-3 border">Rank</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ninjas.map(ninja => (
+              <tr
+                key={ninja.id}
+                onClick={() => handleRowClick(ninja.id)}
+                className={`border-b cursor-pointer ${
+                  deleteMode && selectedIds.includes(ninja.id)
+                    ? 'border-2 border-red-500'
+                    : 'hover:bg-gray-50'
+                }`}
+              >
+                <td className="px-6 py-4 border">{ninja.id}</td>
+                <td className="px-6 py-4 border">{ninja.nome}</td>
+                <td className="px-6 py-4 border">{ninja.idade}</td>
+                <td className="px-6 py-4 border">{ninja.rank}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       {showModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowModal(false)} // clicando fora fecha
+          onClick={() => setShowModal(false)}
         >
           <div
             className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md"
-            onClick={e => e.stopPropagation()} // impede de fechar ao clicar dentro
+            onClick={e => e.stopPropagation()}
           >
             <h3 className="text-2xl font-bold mb-4">Cadastrar Ninja</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -141,29 +222,69 @@ const NinjaList = () => {
         </div>
       )}
 
-      {/* Tabela de dados */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-center border-collapse">
-          <thead className="bg-gray-200 uppercase text-xs text-gray-600">
-            <tr>
-              <th className="px-6 py-3 border">ID</th>
-              <th className="px-6 py-3 border">Nome</th>
-              <th className="px-6 py-3 border">Idade</th>
-              <th className="px-6 py-3 border">Rank</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ninjas.map(ninja => (
-              <tr key={ninja.id} className="border-b hover:bg-gray-50">
-                <td className="px-6 py-4 border">{ninja.id}</td>
-                <td className="px-6 py-4 border">{ninja.nome}</td>
-                <td className="px-6 py-4 border">{ninja.idade}</td>
-                <td className="px-6 py-4 border">{ninja.rank}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {showDeleteConfirm && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => {
+            setShowDeleteConfirm(false)
+            setDeleteMode(false)
+            setSelectedIds([])
+          }}
+        >
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold mb-4 text-center">
+              Deseja remover as despesas selecionadas?
+            </h3>
+            <ul className="text-sm mb-4 list-disc list-inside text-left">
+              {ninjas
+                .filter(n => selectedIds.includes(n.id))
+                .map(n => (
+                  <li key={n.id}>
+                    {n.nome} (ID: {n.id})
+                  </li>
+                ))}
+            </ul>
+            <div className="flex justify-center gap-4">
+              <button
+                className="px-4 py-2 bg-gray-400 text-white rounded"
+                onClick={() => {
+                  setShowDeleteConfirm(false)
+                  setDeleteMode(false)
+                  setSelectedIds([])
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded"
+                onClick={async () => {
+                  await handleDeletar()
+                  setShowDeleteConfirm(false)
+                  setDeleteMode(false)
+                }}
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteMode && selectedIds.length > 0 && (
+        <div className="fixed bottom-6 right-6">
+          <button
+            className="bg-red-600 text-white px-4 py-2 rounded shadow"
+            onClick={() => setShowDeleteConfirm(true)}
+          >
+            {selectedIds.length > 0
+              ? `Confirmar Remoções: (${selectedIds.length})`
+              : 'Confirmar Remoção'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
