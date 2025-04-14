@@ -16,6 +16,7 @@ const NinjaList = () => {
   const [selectedIds, setSelectedIds] = useState([])
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteMode, setDeleteMode] = useState(false)
+  const [hovering, setHovering] = useState(false) // Novo estado para hover
 
   useEffect(() => {
     carregarNinjas()
@@ -31,6 +32,7 @@ const NinjaList = () => {
         !event.target.closest('.button-container') // Clique nos botões
       ) {
         setSelectedIds([]) // Limpa os itens selecionados
+        setDeleteMode(false) // Cancela o modo de remoção
       }
     }
 
@@ -71,7 +73,7 @@ const NinjaList = () => {
   }
 
   const handleRowClick = id => {
-    if (!deleteMode) return
+    if (!deleteMode) return // Só permite selecionar despesas no modo de remoção
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
@@ -80,12 +82,19 @@ const NinjaList = () => {
   const handleDeletar = async () => {
     try {
       for (const id of selectedIds) {
-        await deletarNinjaPorId(id)
+        await deletarNinjaPorId(id) // Remove cada despesa pelo ID
       }
-      setSelectedIds([])
-      carregarNinjas()
+      setSelectedIds([]) // Limpa as despesas selecionadas
+      setDeleteMode(false) // Sai do modo de remoção
+      carregarNinjas() // Atualiza a lista de despesas
     } catch (err) {
       console.error('Erro ao deletar ninja:', err)
+    }
+  }
+
+  const toggleDeleteMode = () => {
+    if (selectedIds.length === 0) {
+      setDeleteMode(false) // Cancela a remoção se não houver itens selecionados
     }
   }
 
@@ -115,9 +124,22 @@ const NinjaList = () => {
 
           <button
             className="rounded-full font-bold bg-red-600 text-white px-6 py-2"
-            onClick={() => setDeleteMode(true)}
+            onClick={() => {
+              if (deleteMode) {
+                // Se já estiver no modo de remoção, cancela a remoção
+                setDeleteMode(false)
+                setSelectedIds([]) // Limpa as despesas selecionadas
+              } else {
+                // Ativa o modo de remoção
+                setDeleteMode(true)
+              }
+            }}
+            onMouseEnter={() => setHovering(true)} // Ativa o hover
+            onMouseLeave={() => setHovering(false)} // Desativa o hover
           >
-            {deleteMode
+            {hovering && deleteMode
+              ? `Cancelar Remoção? (${selectedIds.length})`
+              : deleteMode
               ? `Despesas Selecionadas: (${selectedIds.length})`
               : 'Remover Despesa'}
           </button>
@@ -279,9 +301,7 @@ const NinjaList = () => {
             className="bg-red-600 text-white px-4 py-2 rounded shadow"
             onClick={() => setShowDeleteConfirm(true)}
           >
-            {selectedIds.length > 0
-              ? `Confirmar Remoções: (${selectedIds.length})`
-              : 'Confirmar Remoção'}
+            {`Confirmar Remoções: (${selectedIds.length})`}
           </button>
         </div>
       )}
