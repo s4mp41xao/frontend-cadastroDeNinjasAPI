@@ -14,9 +14,9 @@ const NinjaList = () => {
   const [error, setError] = useState(null)
   const [showModal, setShowModal] = useState(false)
   const [selectedIds, setSelectedIds] = useState([])
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteMode, setDeleteMode] = useState(false)
-  const [hovering, setHovering] = useState(false) // Novo estado para hover
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [hovering, setHovering] = useState(false)
 
   useEffect(() => {
     carregarNinjas()
@@ -24,26 +24,24 @@ const NinjaList = () => {
 
   useEffect(() => {
     const handleClickOutside = event => {
-      // Verifica se o clique foi fora da tabela, dos botões ou do cabeçalho
       if (
         deleteMode &&
-        !event.target.closest('table') && // Clique fora da tabela
-        !event.target.closest('.header-container') && // Clique no cabeçalho
-        !event.target.closest('.button-container') // Clique nos botões
+        !event.target.closest('table') &&
+        !event.target.closest('.header-container') &&
+        !event.target.closest('.button-container') &&
+        !event.target.closest('.fixed') // Adicionado para ignorar elementos fixos
       ) {
-        setSelectedIds([]) // Limpa os itens selecionados
-        setDeleteMode(false) // Cancela o modo de remoção
+        setSelectedIds([])
+        setDeleteMode(false)
       }
     }
 
-    // Adiciona o evento de clique no documento
     document.addEventListener('click', handleClickOutside)
 
-    // Remove o evento ao desmontar o componente
     return () => {
       document.removeEventListener('click', handleClickOutside)
     }
-  }, [deleteMode])
+  }, [deleteMode, showDeleteConfirm])
 
   const carregarNinjas = async () => {
     try {
@@ -73,7 +71,7 @@ const NinjaList = () => {
   }
 
   const handleRowClick = id => {
-    if (!deleteMode) return // Só permite selecionar despesas no modo de remoção
+    if (!deleteMode) return
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
@@ -81,20 +79,14 @@ const NinjaList = () => {
 
   const handleDeletar = async () => {
     try {
-      for (const id of selectedIds) {
-        await deletarNinjaPorId(id) // Remove cada despesa pelo ID
-      }
-      setSelectedIds([]) // Limpa as despesas selecionadas
-      setDeleteMode(false) // Sai do modo de remoção
-      carregarNinjas() // Atualiza a lista de despesas
+      await Promise.all(selectedIds.map(id => deletarNinjaPorId(id)))
+      setSelectedIds([])
+      setDeleteMode(false)
+      setShowDeleteConfirm(false)
+      await carregarNinjas()
     } catch (err) {
       console.error('Erro ao deletar ninja:', err)
-    }
-  }
-
-  const toggleDeleteMode = () => {
-    if (selectedIds.length === 0) {
-      setDeleteMode(false) // Cancela a remoção se não houver itens selecionados
+      alert('Erro ao remover os itens selecionados.')
     }
   }
 
@@ -108,7 +100,7 @@ const NinjaList = () => {
     <div className="px-6 relative">
       <div
         className="flex justify-between items-center pb-10 pt-8 px-4 header-container"
-        onClick={e => e.stopPropagation()} // Impede que o clique no cabeçalho desmarque os itens
+        onClick={e => e.stopPropagation()}
       >
         <h2 className="text-3xl font-bold text-left">
           Histórico de movimentações
@@ -116,40 +108,31 @@ const NinjaList = () => {
 
         <div className="flex gap-4 button-container">
           <button
-            className="rounded-full font-bold bg-black text-white px-6 py-2"
+            className="rounded-full font-bold bg-black text-white px-6 py-2 hover:bg-gray-800 transition-colors"
             onClick={() => setShowModal(true)}
           >
             Cadastrar Despesa
           </button>
 
           <button
-            className="rounded-full font-bold bg-red-600 text-white px-6 py-2"
+            className="rounded-full font-bold bg-red-600 text-white px-6 py-2 hover:bg-red-700 transition-colors"
             onClick={() => {
               if (deleteMode) {
-                // Se já estiver no modo de remoção, cancela a remoção
                 setDeleteMode(false)
-                setSelectedIds([]) // Limpa as despesas selecionadas
+                setSelectedIds([])
               } else {
-                // Ativa o modo de remoção
                 setDeleteMode(true)
               }
             }}
-            onMouseEnter={() => setHovering(true)} // Ativa o hover
-            onMouseLeave={() => setHovering(false)} // Desativa o hover
           >
-            {hovering && deleteMode
-              ? `Cancelar Remoção? (${selectedIds.length})`
-              : deleteMode
-              ? `Despesas Selecionadas: (${selectedIds.length})`
+            {deleteMode
+              ? `Cancelar Seleção (${selectedIds.length})`
               : 'Remover Despesa'}
           </button>
         </div>
       </div>
 
-      <div
-        className="overflow-x-auto"
-        onClick={e => e.stopPropagation()} // Impede que o clique na tabela desmarque os itens
-      >
+      <div className="overflow-x-auto" onClick={e => e.stopPropagation()}>
         <table className="min-w-full text-sm text-center border-collapse">
           <thead className="bg-gray-200 uppercase text-xs text-gray-600">
             <tr>
@@ -166,7 +149,7 @@ const NinjaList = () => {
                 onClick={() => handleRowClick(ninja.id)}
                 className={`border-b cursor-pointer ${
                   deleteMode && selectedIds.includes(ninja.id)
-                    ? 'border-2 border-red-500'
+                    ? 'border-2 border-red-500 bg-red-50'
                     : 'hover:bg-gray-50'
                 }`}
               >
@@ -180,11 +163,44 @@ const NinjaList = () => {
         </table>
       </div>
 
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
+          <div
+            className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold mb-4 text-center">
+              Confirmar remoção de {selectedIds.length} item(s)?
+            </h3>
+            <ul className="text-sm mb-4 list-disc list-inside text-left max-h-40 overflow-y-auto">
+              {ninjas
+                .filter(n => selectedIds.includes(n.id))
+                .map(n => (
+                  <li key={n.id} className="py-1">
+                    {n.nome} (ID: {n.id})
+                  </li>
+                ))}
+            </ul>
+            <div className="flex justify-center gap-4">
+              <button
+                className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={handleDeletar}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => setShowModal(false)}
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]">
           <div
             className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md"
             onClick={e => e.stopPropagation()}
@@ -195,7 +211,7 @@ const NinjaList = () => {
                 <label className="block mb-1 font-medium">Nome</label>
                 <input
                   type="text"
-                  className="w-full border px-4 py-2 rounded"
+                  className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-black"
                   placeholder="Digite o nome"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
@@ -206,7 +222,7 @@ const NinjaList = () => {
                 <label className="block mb-1 font-medium">Idade</label>
                 <input
                   type="number"
-                  className="w-full border px-4 py-2 rounded"
+                  className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-black"
                   placeholder="Digite a idade"
                   value={idade}
                   onChange={e => setIdade(e.target.value)}
@@ -217,7 +233,7 @@ const NinjaList = () => {
                 <label className="block mb-1 font-medium">Rank</label>
                 <input
                   type="text"
-                  className="w-full border px-4 py-2 rounded"
+                  className="w-full border px-4 py-2 rounded focus:ring-2 focus:ring-black"
                   placeholder="Digite o rank"
                   value={rank}
                   onChange={e => setRank(e.target.value)}
@@ -227,14 +243,14 @@ const NinjaList = () => {
               <div className="flex justify-end space-x-2 pt-4">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded bg-gray-300"
+                  className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
                   onClick={() => setShowModal(false)}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded bg-black text-white"
+                  className="px-4 py-2 rounded bg-black text-white hover:bg-gray-800"
                 >
                   Salvar
                 </button>
@@ -244,64 +260,13 @@ const NinjaList = () => {
         </div>
       )}
 
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={() => {
-            setShowDeleteConfirm(false)
-            setDeleteMode(false)
-            setSelectedIds([])
-          }}
-        >
-          <div
-            className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm"
-            onClick={e => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold mb-4 text-center">
-              Deseja remover as despesas selecionadas?
-            </h3>
-            <ul className="text-sm mb-4 list-disc list-inside text-left">
-              {ninjas
-                .filter(n => selectedIds.includes(n.id))
-                .map(n => (
-                  <li key={n.id}>
-                    {n.nome} (ID: {n.id})
-                  </li>
-                ))}
-            </ul>
-            <div className="flex justify-center gap-4">
-              <button
-                className="px-4 py-2 bg-gray-400 text-white rounded"
-                onClick={() => {
-                  setShowDeleteConfirm(false)
-                  setDeleteMode(false)
-                  setSelectedIds([])
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded"
-                onClick={async () => {
-                  await handleDeletar()
-                  setShowDeleteConfirm(false)
-                  setDeleteMode(false)
-                }}
-              >
-                Remover
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {deleteMode && selectedIds.length > 0 && (
-        <div className="fixed bottom-6 right-6">
+        <div className="fixed bottom-6 right-6 z-50">
           <button
-            className="bg-red-600 text-white px-4 py-2 rounded shadow"
+            className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-red-700 transition-colors flex items-center gap-2"
             onClick={() => setShowDeleteConfirm(true)}
           >
-            {`Confirmar Remoções: (${selectedIds.length})`}
+            <span>🗑️ Confirmar ({selectedIds.length})</span>
           </button>
         </div>
       )}
